@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<head> <meta charset="UTF-8">
+    <script src="../../jslibrary/initShaders.js"></script>
+    <script src="../../jslibrary/MV.js"></script>
+    <script src="../../jslibrary/webgl-utils.js"></script>
+    <script src="../../jslibrary/OBJParser.js"></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute vec2 vTexCoord;
+        varying vec2 fTexCoord;   
+        
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+        void main(){
+
+            fTexCoord = vTexCoord;
+            gl_Position = P*V*M*a_Position;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform sampler2D texMap;        
+        varying vec2 fTexCoord;      
+        void main() {           
+            gl_FragColor = texture2D(texMap, fTexCoord);         
+        }
+    </script>
+    <script src="work6part2.js"></script>
+    <style>
+        .chosen {
+            background-color: darkgrey
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../part1/work6part1.html"> &lt;&lt; Worksheet 6 Part 1</a>
+    <h3 style="display: inline;"> &ThickSpace; Worksheet 6 Part 2 &ThickSpace; </h3>
+    <a href="../part3/work6part3.html">Worksheet 6 Part 3 &gt;&gt; </a><br><br>
+    
+    <canvas id="c" width="600" height="600" style="border: 0.1em solid black;"></canvas>
+    <!--<button id="pause">Pause</button></br></br>-->
+    <br> <br>
+    <b>Magnification filter</b>
+    <select id="mag" onchange="magFilterLevel(this.value)">
+        <option value="0" selected>NEAREST</option>
+        <option value="1">LINEAR</option>
+    </select>
+    <br> <br>
+    <b>Minification filter</b>
+    <select id="min" onchange="minFilterLevel(this.value)">
+        <option value="0" selected>NEAREST</option>
+        <option value="1">LINEAR</option>
+        <option value="2">NEAREST MIPMAP NEAREST</option>
+        <option value="3">LINEAR MIPMAP NEAREST</option>
+        <option value="4">NEAREST MIPMAP LINEAR</option>
+        <option value="5">LINEAR MIPMAP LINEAR</option>
+    </select>
+    <p>
+      Magnification er når texturens opløsning er lavere end det renderede billedes opløsning, 
+så en enkelt texel (punkt i texturen) dækker over flere pixels (punkt på skærmbilledet).</p>
+<p>Minification er den omvendte situation, en pixel dækker over flere texels.</p>
+<p>NEAREST betyder at der for en pixel samples den nærmest tilsvarende texel. </p>
+<p>Under Magnification betyder dette, at et (kvadratisk) område af pixels vil få sin farve fra én enkelt texel.
+Hvorimod under Minification vil nabo pixels sample fra texels der ikke er naboer, men har texels imellem dem.</p>
+<p>LINEAR (Bilinear filter) betyder at pixel-samplingen er et gennemsnit af værdien fra nabo texels.</p>
+<p>Under Magnification bliver 'vægtningen' af de texels der bidrager til gennemsnittet udregnet ud fra en 
+interpolation af pixel samplingens forholdsvise position i texturen, altså hvor tæt på kanten den ligger i den texel som den rammer.</p>
+<p>Under Minification vil der med linear filtrering stadig være aliasing pga. mellemrummene 
+mellem de texels som pixel samplingen rammer kan være større end  det område der tages gennemsnit ud fra.
+Dette problem kan håndteres med mipmapping.</p>
+<p>Mipmapping er en texture der er blevet kopieret iterativt med mindre og mindre opløsningen, hvor
+texels er gennemsnittet af forrige iterations tilsvarende texels.</p>
+<p>NEAREST_MIPMAP_NEAREST er når der tages den 'mip' der har en opløsningen der er <i>nærmest</i> den aktuelle pixel opløsning, og der  derpå vælges NEAREST texel.</p>
+<p>LINEAR_MIPMAP_NEAREST er med den <i>nærmeste</i> mip, og så et LINEAR gennemsnit fra dennes texels.</p>
+<p>NEAREST_MIPMAP_LINEAR er en linear filtrering af de to NEAREST texels taget fra de 2 mip's der er <i>nærmest</i> pixel opløsningen. 
+<p>LINEAR_MIPMAP_LINEAR er en linear filtrering af LINEAR gennemsnit fra texels i de 2 <i>nærmeste</i> mip's (Trilinear filter).
+</p>
+</body>
+
+</html>
+

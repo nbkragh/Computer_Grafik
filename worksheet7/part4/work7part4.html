@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+
+<head> <meta charset="UTF-8">
+    <script src="../../jslibrary/initShaders.js"></script>
+    <script src="../../jslibrary/MV.js"></script>
+    <script src="../../jslibrary/webgl-utils.js"></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+
+        varying vec4 textCoords;
+        
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+        uniform mat4 Mtex;
+        
+        void main(){
+            textCoords = Mtex*a_Position;
+            gl_Position = P*V*M*a_Position;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform samplerCube texMap;        
+        uniform sampler2D texNimage;        
+        uniform vec3 eye;
+        uniform float doReflect;
+        varying vec4 textCoords;
+
+        #define Pi radians(180.0)
+
+        vec3 rotate_to_normal(vec3 normal, vec3 v) { 
+
+            float a = 1.0/(1.0 + normal.z); 
+            float b = -normal.x*normal.y*a;
+
+            return vec3(1.0 - normal.x*normal.x*a, b, -normal.x)*v.x
+                + vec3(b, 1.0 - normal.y*normal.y*a, -normal.y)*v.y 
+                + normal*v.z;
+        }
+
+        void main() {
+            vec3 n = textCoords.xyz;
+            vec3 iw = textCoords.xyz - eye;
+            vec3 v = texture2D(texNimage, vec2( 1.0-(atan(n.z,n.x)/(2.0*Pi)) , (acos(n.y)/(Pi)) )).xyz;
+
+            v.x = 2.0*v.x - 1.0;
+            v.y = 2.0*v.y - 1.0;
+            v.z = 2.0*v.z - 1.0;
+            vec3 rw = reflect(iw, rotate_to_normal(textCoords.xyz, v) );
+            
+        
+            if(doReflect > 0.0){
+                gl_FragColor = textureCube(texMap, rw) ;
+               
+            }else{
+                gl_FragColor = textureCube(texMap, vec3(n.x, n.y,n.z));
+            }
+        }
+    </script>
+    <script src="work7part4.js"></script>
+    <style>
+        .chosen {
+            background-color: darkgrey
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../part3/work7part3.html"> &lt;&lt; Worksheet 7 Part 3</a>
+    <h3 style="display: inline;"> &ThickSpace; Worksheet 7 Part 4 &ThickSpace; </h3>
+    <a href="../../worksheet8/part1/work8part1.html">Worksheet 8 Part 1 &gt;&gt; </a><br><br>
+    <canvas id="c" width="600" height="600" style="border: 0.1em solid black;"></canvas>
+</br><button id="pause">Pause</button></br></br>
+
+    <br><br> <p>** FIREFOX nægter at vise baggrunden her</p>
+</body>
+
+</html>
+

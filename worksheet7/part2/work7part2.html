@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+
+<head> <meta charset="UTF-8">
+    <script src="../../jslibrary/initShaders.js"></script>
+    <script src="../../jslibrary/MV.js"></script>
+    <script src="../../jslibrary/webgl-utils.js"></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+
+        varying vec4 textCoords;
+        
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+        uniform mat4 Mtex;
+        void main(){
+            textCoords = Mtex*a_Position;
+            gl_Position = P*V*M*a_Position;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform samplerCube texMap;        
+
+        varying vec4 textCoords;
+
+        #define Pi radians(180.0)
+        
+        void main() {   
+            vec4 n = textCoords;
+            
+            //vec2 texturCoords = vec2( 1.0-(atan(n.z,n.x)/(2.0*Pi)) , (acos(n.y)/(Pi)) ); 
+
+            gl_FragColor = textureCube(texMap, vec3(n.x, n.y,n.z)) ;
+        }
+    </script>
+    <script src="work7part2.js"></script>
+    <style>
+        .chosen {
+            background-color: darkgrey
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../part1/work7part1.html"> &lt;&lt; Worksheet 7 Part 1</a>
+    <h3 style="display: inline;"> &ThickSpace; Worksheet 7 Part 2 &ThickSpace; </h3>
+    <a href="../../worksheet7/part3/work7part3.html">Worksheet 7 Part 3 &gt;&gt; </a><br><br>
+    
+    <canvas id="c" width="600" height="600" style="border: 0.1em solid black;"></canvas>
+</br><button id="pause">Pause</button></br></br>
+
+    <br><br> <p>** FIREFOX nægter at vise baggrunden her</p>
+</body>
+
+</html>
+

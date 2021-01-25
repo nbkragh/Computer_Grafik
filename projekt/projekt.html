@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="UTF-8">
+    <script src="../jslibrary/initShaders.js"></script>
+    <script src="../jslibrary/MV.js"></script>
+    <script src="../jslibrary/webgl-utils.js"></script>
+    <script src="../jslibrary/quaternion.js"></script>
+    <script src="load_raw.js"></script>
+    <script src="helpers.js"></script>
+
+
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        varying vec3 v_Position;
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+
+        varying mat4 v_V;
+        varying mat4 v_M;
+        void main(){
+            v_V = V;
+            v_M = M;
+            v_Position = (a_Position).xyz;
+            gl_Position = P*V*M*a_Position;
+        }
+    </script>
+    <script id="pos-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec3 v_Position;
+        void main(){
+            gl_FragColor = vec4(v_Position, 1.0);
+        }
+    </script>
+
+    <script id="vol-fragment-shader" type="x-shader/x-fragment">
+        precision mediump float;
+        varying vec3 v_Position;
+
+        uniform sampler2D samplerPos;
+        uniform sampler2D samplerVol;
+        uniform sampler2D samplerSphereBack;
+        uniform sampler2D samplerSphereFront;
+
+        uniform float switchPicking;
+        
+        uniform float stepLength;
+        varying mat4 v_V;
+        varying mat4 v_M;
+
+        vec3 i2c(float f) {
+            const float dx = 0.8;
+            f = clamp(f, 0.0, 1.0);
+            float g = (6.0 - 2.0*dx)*f + dx;
+            vec3 rainbow = vec3(3.0 - abs(g - 4.0) - abs(g - 5.0), 4.0 - abs(g - 2.0) - abs(g - 4.0), 3.0 - abs(g - 1.0) - abs(g - 2.0));
+            return max(vec3(0.0), rainbow*0.5);
+        }
+        
+        float tex3D_linear(vec3 p) {
+            float res_z = 64.0; // "dybden" af 2d texturen / antal billeder
+            float layer = floor(p.z*res_z); 
+            float tcy = (p.y + layer)/res_z;
+            float intensity1 = texture2D(samplerVol, vec2(p.x, tcy)).r;
+            float intensity2 = texture2D(samplerVol, vec2(p.x, tcy + 1.0/res_z)).r;
+            return mix(intensity1, intensity2, p.z*res_z - layer);
+        }
+        vec3 norm(vec3 p) {
+          vec3 g;
+          float step = 1.0/128.0;
+          g.x = tex3D_linear(vec3(p.x + step, p.y, p.z)) - tex3D_linear(vec3(p.x - step, p.y, p.z));
+          g.y = tex3D_linear(vec3(p.x, p.y + step, p.z)) - tex3D_linear(vec3(p.x, p.y - step, p.z));
+          g.z = tex3D_linear(vec3(p.x, p.y, p.z + step*2.0)) - tex3D_linear(vec3(p.x, p.y, p.z - step*2.0));
+          return (-normalize(g*vec3(128.0, 128.0, 64.0)));
+        }
+
+        vec4 shade_alt_old_school(vec3 p, vec3 dir, int steps) {
+            vec4 I = vec4(0.0, 0.0, 0.0, 1.0);
+            float intensity = 0.0;
+            for(int i = 0; i < 300; ++i) {
+                if(i >= steps || I.a < 0.1) break;
+                p += dir;
+                intensity = tex3D_linear(p);
+                if(intensity > 0.13 ) {
+                    float a = intensity - 0.13;
+                    I.a *= (1.0 - a);
+                }
+            }
+            return vec4(intensity,intensity,intensity, 1.0);
+        }
+        vec4 shade_old_school(vec3 p, vec3 dir, int steps) {
+            vec4 I = vec4(0.0, 0.0, 0.0, 1.0);
+            for(int i = 0; i < 300; ++i) {
+                if(i >= steps || I.a < 0.1) break;
+                p += dir;
+                float intensity = tex3D_linear(p);
+                if(intensity > 0.13) {
+                    float a = intensity - 0.13;
+                    vec3 c = i2c(intensity);
+                    I.rgb += I.a*a*c*(i < 3 ? 1.0 : dot(vec3(0.0,0.0,1.0), normalize(mat3(v_V*v_M)*norm(p))));
+                    I.a *= (1.0 - a);
+                }else {
+                    return shade_alt_old_school( p,  dir, steps);
+                }
+            }
+            return I + I.a*vec4(0.0, 0.0, 0.0, 0.0);
+        }
+        vec3 getFirstPosition(vec3 p, vec3 dir, int steps){
+            for(int i = 0; i < 300; ++i) {
+                if(i >= steps) return vec3(0.0,0.0,0.0);
+                p += dir;
+                float intensity = tex3D_linear(p);
+                if(intensity > 0.20) return p;
+            }
+        }
+        void main(){
+            vec3 cubePos = texture2D(samplerPos, gl_FragCoord.xy/512.0).rgb ;
+            vec3 dir = cubePos - v_Position;
+            float len = length(dir);
+            dir /= len;
+            int steps_from_cube_front = int(len/stepLength);
+            vec3 scaled_dir = dir*stepLength;
+
+            vec3 sphereBackFace = texture2D(samplerSphereBack,gl_FragCoord.xy/512.0).xyz;
+            vec3 sphereFrontFace = texture2D(samplerSphereFront,gl_FragCoord.xy/512.0).xyz;
+            
+            int steps_from_sphere_back = int((len - length(sphereBackFace-v_Position))/stepLength);
+            
+            vec3 hit = getFirstPosition(v_Position, scaled_dir, int(len/stepLength));
+            
+            if( (length(sphereBackFace- hit) + length(sphereFrontFace - hit)) > length(sphereFrontFace- sphereBackFace)+0.04 ){ 
+                switchPicking < 0.5 ?
+                    gl_FragColor = vec4(shade_old_school(v_Position, scaled_dir, steps_from_cube_front).rgb ,1.0)
+                    : gl_FragColor = vec4(hit,1.0);
+            }else{
+                switchPicking < 0.5 ?
+                    gl_FragColor = vec4(shade_old_school(sphereBackFace, scaled_dir, steps_from_sphere_back-25 ).rgb ,1.0)
+                    : gl_FragColor = vec4(getFirstPosition(sphereBackFace, scaled_dir, steps_from_sphere_back ).rgb,1.0);
+            }
+        }
+        
+        
+    </script>
+    <script src="projekt.js"></script>
+</head>
+
+<body>
+    <a href="../worksheet10/part4/work10part4.html"> &lt;&lt; Worksheet 10 Part 4</a>
+    <h3 style="display: inline; margin-left: 100pt;"> &ThickSpace; projekt&ThickSpace; </h3>
+    <br>
+    <br>
+    <canvas id="c" width="512" height="512"></canvas>
+    </br>
+
+    <button id="frontView">Default View</button>
+    <div>
+        <p><b>radius
+                <input type="range" min="0" max="50" value="25" id="radius">
+    </div></b></p>
+    </div>
+    <p>venstre klik: skær en kugle, </p>
+    <P>
+        højre klik: styr kamera</p>
+
+        <br><a href="./rapport/rapport_s185205.pdf"> rapport PDF</a>
+</body>
+
+</html>

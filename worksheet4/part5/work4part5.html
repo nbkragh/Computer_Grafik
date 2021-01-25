@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+
+<head> <meta charset="UTF-8">
+    <script src="../../jslibrary/initShaders.js"></script>
+    <script src="../../jslibrary/MV.js"></script>
+    <script src="../../jslibrary/webgl-utils.js"></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute vec4 a_Normal;
+
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+        
+        varying vec3 n, w_r , w_o, w_i;
+
+        uniform vec4 Light_Position;
+                
+        void main(){
+            
+            vec4 pos = V*M*a_Position;
+            vec4 light = V*Light_Position;
+            n = (V*M*a_Normal).xyz;
+            w_i = Light_Position.w == 0.0 ? light.xyz : light.xyz - pos.xyz;
+            w_r = (2.0*dot(w_i,n)*n)-w_i;
+            w_o = -(pos).xyz;
+            
+            gl_Position = P * V * M *  a_Position;
+            
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+        
+        uniform float s;
+        
+        uniform vec4 Light_Emis;
+        
+        uniform float Kd;
+        uniform float Ka;
+        uniform float Ks;
+
+        varying vec3 n, w_r , w_o, w_i;
+
+        void main(){
+            vec4 Li = Light_Emis;
+
+            vec4 Ld =Kd*Li*(max(dot( normalize(w_i),normalize(n)),0.0));
+            
+            vec4 LPs = Ks*Li*pow( max( dot(normalize(w_r),normalize(w_o)), 0.0 ) ,s);
+            
+            vec4 La =  Ka*Li;
+
+            vec4 modelColor = vec4(1.0,0.0,0.5,1.0);
+            
+            vec4 a_Color = modelColor* Ld + LPs + modelColor *La;
+            a_Color.w = 1.0;
+            
+            gl_FragColor = a_Color;
+        } 
+    </script>
+    <script src="work4part5.js"></script>
+    <style>
+        .chosen {
+            background-color: darkgrey
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../part4/work4part4.html"> &lt;&lt; Worksheet 4 Part 4</a>
+    <h3 style="display: inline;"> &ThickSpace; Worksheet 4 Part 5 &ThickSpace; </h3>
+    <a href="../../worksheet5/part3/work5part3.html">Worksheet 5 Part 3 &gt;&gt; </a><br><br>
+    
+    <canvas id="c" width="600" height="600" style="border: 0.1em solid black;"></canvas>
+    </br>
+
+    <button id="decrease">Decrease Division</button>
+    <button id="increase">Increase Division</button>
+    <button id="pause">Pause</button></br></br>
+    <div><p>Emission            <input type="range" min="0" max="100" value="100"  id="emitRange"></p></div>
+    <div><p>ambient             <input type="range" min="0" max="100" value="50"  id="aRange"></div></p></div>
+    <div><p>diffusion           <input type="range" min="0" max="100" value="50"  id="dRange"></div></p></div>
+    <div><p>specular            <input type="range" min="1" max="100" value="50"  id="sRange"></div></p></div>
+    <div><p>shininess           <input type="range" min="1" max="100" value="50"  id="shiny"></div></p></div>
+    
+    <p>Phong shading er bedre til highlighting end Gouraud shading, da Gouraud beregner lysets vektor pr. vertex
+        i vertex shaderen og overlader udregningen af lysets vektor i resten af pixels/fragments (polygonens overflade)
+        til interpolering i fragment-shaderen, 
+        hvorimod Phong beregner lysets vektor pr. fragment i fragment shaderen. 
+        Gouraud shading skal bruge en vertex pr. 'korrekt' lys vektor og kræver dermed langt flere vertex' end Phong for at se godt ud, men bruger mindre regnekraft pr. polygon.
+
+    </p>
+    <h3 id="part6">Part 6</h3>
+    <h4>a)</h4>
+    <p>Phong's reflektions model er en matematisk formel for lyset som en grafisk overflade 'kaster' af sig,
+        den inkluderer ambient og diffuse og specular (highlights) lys i sin udregning. 
+        Phong shading er hvor Phong's reflektions model bliver brugt på den normaliserede lys vektor i fragment shaderen.
+        Phongs reflektions model kan også bruges pr. vertex, kaldet Gouraud shading.
+    </p>
+    <h4>b)</h4>
+    <p>
+        Flat shading er hvor lyset blive beregnet én gang pr. polygon. Fragment-shaderen har ikke så meget at lave.
+        Meget billigt i beregninger pr. pixel/fragment.
+    </p>
+    <p>
+        Gouraud shading interpolerer lyset pr. pixel/fragment med udgangspunkt i det beregnede lys pr. vertex. 
+        Det giver en mere naturtro lys reflektion over en grafisk overflade end flat shading.
+        Intensiteten af udregninger ligger et sted mellem flat shading og Phong shading.
+    </p>
+    <p>
+        Phong shading beregner lyset pr. pixel/fragment, 
+        hvilket giver den fineste lys reflektion over en grafisk overflade 
+        men koster dermed også mest i udregninger af de 3 shading metoder.
+    </p>
+    <h4>c)</h4>
+    <p>Directional light har en lyskilde som er uendeligt langt væk og lys vektorene (lysstrålerne) derfra er 
+        er dermed parallelle.
+        Point light er en lyskilde som har en position i rummet, hvor lys vektorene derfra har en 
+        vinklet udbredelse. Afstanden mellem det reflekterende objekt og lyskilden afgørerer styrken det reflekterede lys,
+        hvor reflektionen ikke er påvirket afstanden ved Directional light, da der netop ikke er nogen afstand.
+        Directional light minder om lyset fra solen, som er meget langt væk. Point light minder om lyset fra 
+        f.eks. en lampe i et rum.
+    </p>
+    <h4>d)</h4>
+    <p>
+        Eye position påvirker shadingen af et objekt i forbindelse med udregningen af highlights
+        som er afhængig af vinklen mellem Eye position og lyskilden.
+    </p>
+    <h4>e)</h4>
+    <p>Sættes Specular Term til (0,0,0) så reflekteres der ikke noget highlight fra objektet.</p>
+    <h4>f)</h4>
+    <p>Shininess exponenten (alpha) afgører arealet som specular lyset udbreder sig over. Jo større
+        areal jo mere lys reflekteres der.
+    </p>
+    <h4>g)</h4>
+    <p>
+        Lyset blev bliver beregnet i view-space.
+    </p>
+</body>
+
+</html

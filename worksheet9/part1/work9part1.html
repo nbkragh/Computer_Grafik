@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+
+<head> <meta charset="UTF-8">
+    <script src="../../jslibrary/initShaders.js"></script>
+    <script src="../../jslibrary/MV.js"></script>
+    <script src="../../jslibrary/webgl-utils.js"></script>
+    <script src="../../jslibrary/OBJParser.js"></script>
+    <script id="ground-vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute vec2 textureCoords;
+        varying vec2 fTexCoord;   
+        
+        uniform vec4 lightPoint;
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+
+        void main(){
+            
+            fTexCoord = textureCoords;
+            gl_Position = P*V*M*a_Position;
+        }
+    </script>
+    <script id="ground-fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform sampler2D texMap;
+        uniform float doShadow;      
+        varying vec2 fTexCoord;   
+
+        void main() { 
+            if(doShadow < 1.0 ){        
+                gl_FragColor = texture2D(texMap, fTexCoord);     
+            }else{
+                gl_FragColor = vec4(0.0,0.0,0.0,0.5);
+            }      
+        }
+    </script>
+
+    <!-- ////////////////////////////////////////////////////////////////////////////////////777-->
+    
+    <script id="teapot-vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute vec4 a_Normal;
+        
+        uniform vec4 Light_Position;
+        uniform vec4 Light_Emis;
+
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+        varying vec3 n, w_r , w_o, w_i;
+        void main(){
+
+            vec4 pos = V*M*a_Position;
+            vec4 light = V*Light_Position;
+
+            n = (V*vec4(a_Normal.xyz, 0.0)).xyz; // den homogene koord skal sættes til 0
+            w_i = Light_Position.w == 0.0 ? light.xyz : light.xyz - pos.xyz;
+            w_r = (2.0*dot(w_i,n)*n)-w_i;
+            w_o = -pos.xyz;
+            gl_Position = P * pos;
+        }
+    </script>
+    <script id="teapot-fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform sampler2D texMap;
+        uniform float s;
+        
+        uniform vec4 Light_Emis;
+        
+        uniform float Kd;
+        uniform float Ka;
+        uniform float Ks;
+        
+        uniform float doShadow; 
+        
+        varying vec3 n, w_r , w_o, w_i;
+
+        void main(){
+            vec4 Li = Light_Emis;
+
+            vec4 Ld =Kd*Li*(max(dot( normalize(w_i),normalize(n)),0.0));
+            vec4 LPs = Ks*Li*pow( max( dot(normalize(w_r),normalize(w_o)), 0.0 ) ,s);
+            
+            vec4 La =  Ka*Li;
+
+            
+            vec4 a_Color = Ld + LPs + La*vec4(0.7,0.7,0.7,1.0);
+            a_Color.w = 1.0;
+            
+            gl_FragColor = a_Color;
+        }
+    </script>
+    <script src="work9part1.js"></script>
+    <style>
+        .chosen {
+            background-color: darkgrey
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../../worksheet8/part4/work8part4.html"> &lt;&lt; Worksheet 8 Part 4</a>
+    <h3 style="display: inline;"> &ThickSpace; Worksheet 9 Part 1 &ThickSpace; </h3>
+    <a href="../part2/work9part2.html">Worksheet 9 Part 2 &gt;&gt; </a><br><br>
+    
+    <canvas id="c" width="600" height="600" style="border: 0.1em solid black;"></canvas>
+    <br><br><button id="pauseTeapot">Pause Teapot</button><button id="pauseLight">Pause Light</button></br></br>
+    <br><br><button id="changeCam">Change Camera</button></br></br>
+    
+    <!-- <div><p>Emission            <input type="range" min="0" max="100" value="50"  id="emitRange"></p></div>
+    <div><p>ambient             <input type="range" min="0" max="100" value="50"  id="aRange"></div></p></div>
+    <div><p>diffusion           <input type="range" min="0" max="100" value="50"  id="dRange"></div></p></div> -->
+
+</body>
+
+</html

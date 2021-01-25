@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head> <meta charset="UTF-8">
+    <script src="../../jslibrary/initShaders.js"></script>
+    <script src="../../jslibrary/MV.js"></script>
+    <script src="../../jslibrary/webgl-utils.js"></script>
+    <script src="../../jslibrary/quaternion.js"></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute vec4 a_Color;
+        varying vec4 v_Color; 
+
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+
+
+        void main(){
+            gl_Position = P*V*M*a_Position;
+            v_Color = a_Color;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision mediump float; 
+        varying vec4 v_Color;
+        void main() { 
+            gl_FragColor = v_Color;
+        } 
+    </script>
+    <script src="work10part1.js"></script>
+    <style>
+        .chosen{background-color: darkgrey}
+    </style>
+</head>
+
+<body>
+
+    
+    <a href="../../worksheet9/part2/work9part2.html"> &lt;&lt; Worksheet 9 Part 2</a>
+    <h3 style="display: inline;"> &ThickSpace; Worksheet 10 Part 1 &ThickSpace; </h3>
+    <a href="../part2/work10part2.html">Worksheet 10 Part 2 &gt;&gt; </a><br><br>
+    
+    <canvas id="c" width="600" height="600" style="border: 0.1em solid black;"></canvas>
+
+
+
+</body>
+
+</html

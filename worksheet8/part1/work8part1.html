@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+<head> <meta charset="UTF-8">
+    <script src="../../jslibrary/initShaders.js"></script>
+    <script src="../../jslibrary/MV.js"></script>
+    <script src="../../jslibrary/webgl-utils.js"></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+        attribute vec2 textureCoords;
+        varying vec2 fTexCoord;   
+        
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+        void main(){
+
+            fTexCoord = textureCoords;
+            gl_Position = P*V*M*a_Position;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+        uniform sampler2D texMap;        
+        varying vec2 fTexCoord;      
+        void main() {           
+            gl_FragColor = texture2D(texMap, fTexCoord);         
+        }
+    </script>
+    <script src="work8part1.js"></script>
+    <style>
+        .chosen {
+            background-color: darkgrey
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../../worksheet7/part4/work7part4.html"> &lt;&lt; Worksheet 7 Part 4</a>
+    <h3 style="display: inline;"> &ThickSpace; Worksheet 8 Part 1 &ThickSpace; </h3>
+    <a href="../part2/work8part2.html">Worksheet 8 Part 2 &gt;&gt; </a><br><br>
+    
+    <canvas id="c" width="600" height="600" style="border: 0.1em solid black;"></canvas>
+
+</body>
+
+</html>
+

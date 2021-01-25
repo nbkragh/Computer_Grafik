@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+
+<head> <meta charset="UTF-8">
+    <meta charset="UTF-8">
+    <script src="../../jslibrary/initShaders.js"></script>
+    <script src="../../jslibrary/MV.js"></script>
+    <script src="../../jslibrary/webgl-utils.js"></script>
+    <script src="../../jslibrary/OBJParser.js"></script>
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        attribute vec4 a_Position;
+
+        varying vec4 normals, w_i, pos;
+        
+        uniform mat4 P;
+        uniform mat4 V;
+        uniform mat4 M;
+
+        uniform vec4 Light_Position;
+        
+        void main(){
+            pos = P*V*M*a_Position;
+            vec4 light = P*V*Light_Position;
+            w_i = Light_Position.w == 0.0 ? light : light - pos;
+            normals = a_Position;
+            gl_Position = P*V*M*a_Position;
+        }
+    </script>
+    <script id="fragment-shader" type="x-shader/x-fragment">
+        precision highp float;
+
+        uniform sampler2D texMap;        
+        uniform vec4 Light_Emis;
+        varying vec4 normals, w_i, pos;
+
+        #define Pi radians(180.0)
+        
+        void main() {   
+            vec4 n = normals;
+            vec4 Ld =Light_Emis*(max(dot( normalize(w_i),normalize(pos)),0.0));
+            vec2 texturCoords = vec2( 1.0-(atan(n.z,n.x)/(2.0*Pi)) , (acos(n.y)/(Pi)) ); 
+
+            gl_FragColor = texture2D(texMap, texturCoords) * (Ld + vec4(0.5,0.5,0.5,1.0)); 
+        }
+    </script>
+    <script src="work6part3.js"></script>
+    <style>
+        .chosen {
+            background-color: darkgrey
+        }
+    </style>
+</head>
+
+<body>
+    <a href="../part2/work6part2.html"> &lt;&lt; Worksheet 6 Part 2</a>
+    <h3 style="display: inline;"> &ThickSpace; Worksheet 6 Part 3 &ThickSpace; </h3>
+    <a href="../../worksheet7/part1/work7part1.html">Worksheet 7 Part 1 &gt;&gt; </a><br><br>
+    
+    <canvas id="c" width="600" height="600" style="border: 0.1em solid black;"></canvas>
+</br><button id="pause">Pause</button></br></br>
+    <br> <br>
+
+
+    <b>Minification filter</b>
+    <select id="min" onchange="minFilterLevel(this.value)">
+        <option value="0" selected>NEAREST</option>
+        <option value="1">LINEAR</option>
+        <option value="2">NEAREST MIPMAP NEAREST</option>
+        <option value="3">LINEAR MIPMAP NEAREST</option>
+        <option value="4">NEAREST MIPMAP LINEAR</option>
+        <option value="5">LINEAR MIPMAP LINEAR</option>
+    </select>
+    <br>
+    <p>
+        LINEAR filtrering modarbejder aliasing, men kan giv et uskarpt resultat.</p>
+       <p>       
+        LINEAR filter på texels i det enkelt mip giver en meget gnidret effekt, især i bjergene da disse indeholder meget varierende farver.
+        Hvis der dog ikke bruges LINEAR filter mellem de to <i>nærmeste</i> mip's giver det tydelig aliasing.
+        Så jeg ville vælge at bruge NEAREST_MIPMAP_LINEAR til dette texture, da den kombinerer skarpheden ved at sample nærmeste texel, sammen med
+        antialising-effekten af at tage gennemsnittet af 2 sådanne point-samplede texels fra hver sin mip.
+    </p>
+</body>
+
+</html>
+
